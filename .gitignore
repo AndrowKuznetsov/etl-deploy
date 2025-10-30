@@ -1,0 +1,27 @@
+# Visual Studio
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.wsuo
+*.slnx
+*.slnx.sqlite
+
+
+bin/
+obj/
+Debug/
+Release/
+
+
+__pycache__/
+*.pyc
+.venv/
+.env
+.env.*
+
+# Editors/OS
+.vscode/
+.DS_Store
+Thumbs.db

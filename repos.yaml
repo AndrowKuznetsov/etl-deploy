@@ -1,0 +1,8 @@
+instanceRoot: "C:/ETL" 
+repos:
+  - name: etl-core
+    url: https://github.com/yourorg/etl-core.git
+    ref: main
+  - name: etl-jobs
+    url: https://github.com/yourorg/etl-jobs.git
+    ref: main

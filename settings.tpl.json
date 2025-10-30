@@ -1,0 +1,8 @@
+{
+    "instance": "${INSTANCE_NUMBER}",
+    "db": {
+        "user": "${DB_USER}",
+        "pass": "${DB_PASS}"
+    },
+    "api_token": "${API_TOKEN}"
+}
