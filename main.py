@@ -1,9 +1,10 @@
-import json, os, sys, time
+import json
+from pathlib import Path
 
 def load_settings():
-    path = os.environ.get("SETTINGS_PATH", "settings.json")
-    with open(path, encoding="utf-8") as f:
-        return json.load(f)
+    p = Path("settings.json")
+    with p.open("r", encoding="utf-8-sig"):  
+        return json.load(p.open("r", encoding="utf-8-sig"))
 
 def main():
     cfg = load_settings()
