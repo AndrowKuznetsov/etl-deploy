@@ -1,4 +1,4 @@
-pipeline {
+﻿pipeline {
   agent any
   parameters {
     choice(name: 'INSTANCE_NUMBER', choices: ['1','2','3','4','5','6','7','8','9','10'], description: 'Instance')
@@ -17,15 +17,22 @@ pipeline {
     }
 
     stage('Render settings.json') {
-      steps {
-        powershell '''
-          $tpl  = Get-Content "settings.tpl.json" -Raw
-          $json = $tpl -replace "\\$\\{INSTANCE_NUMBER\\}","${env:INSTANCE_NUMBER}"
-          $out  = Join-Path $env:PROJECT_DIR "settings.json"
-          $json | Out-File -FilePath $out -Encoding UTF8 -Force
-        '''
-      }
-    }
+  steps {
+    powershell '''
+      $tpl  = Get-Content "$env:WORKSPACE\\settings.tpl.json" -Raw
+      
+      $json = $tpl -replace "\\$\\{INSTANCE_NUMBER\\}", "$env:INSTANCE_NUMBER"
+      $out  = Join-Path $env:PROJECT_DIR "settings.json"
+
+      
+      [System.IO.File]::WriteAllText($out, $json, (New-Object System.Text.UTF8Encoding($false)))
+
+      if (-not (Test-Path $out)) { Write-Error "[FATAL] settings.json not created at $out" }
+      Get-Item $out | Format-List FullName,Length
+    '''
+  }
+}
+
 
     stage('Create venv + install deps') {
       steps {
