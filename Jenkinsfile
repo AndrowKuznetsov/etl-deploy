@@ -23,7 +23,7 @@
       
       $json = $tpl -replace "\\$\\{INSTANCE_NUMBER\\}", "$env:INSTANCE_NUMBER"
       $out  = Join-Path $env:PROJECT_DIR "settings.json"
-
+      #fccd
       
       [System.IO.File]::WriteAllText($out, $json, (New-Object System.Text.UTF8Encoding($false)))
 
