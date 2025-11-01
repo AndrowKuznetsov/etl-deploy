@@ -1,4 +1,9 @@
-﻿pipeline {
+﻿# 1) ПЕРЕЗАПИСЫВАЕМ Jenkinsfile С НУЛЯ, БЕЗ BOM
+$path = 'Jenkinsfile'
+$utf8NoBom = [Text.UTF8Encoding]::new($false)
+
+$body = @'
+pipeline {
   agent any
 
   parameters {
@@ -6,7 +11,7 @@
   }
 
   environment {
-    BASE_DIR    = 'C:\\ETL'  
+    BASE_DIR    = 'C:\\ETL'
     PROJECT_DIR = "${BASE_DIR}\\Project${params.INSTANCE_NUMBER}"
   }
 
@@ -18,77 +23,86 @@
   stages {
 
     stage('Checkout this repo') {
-      steps {
-        checkout scm
-      }
+      steps { checkout scm }
     }
 
     stage('Prepare dir') {
       steps {
-        powershell '''
-          New-Item -ItemType Directory -Force -Path "$env:PROJECT_DIR" | Out-Null
-          Write-Host "WORKSPACE   = $env:WORKSPACE"
-          Write-Host "PROJECT_DIR = $env:PROJECT_DIR"
-        '''
+        powershell @"
+New-Item -ItemType Directory -Force -Path `"$env:PROJECT_DIR`" | Out-Null
+Write-Host "WORKSPACE   = $env:WORKSPACE"
+Write-Host "PROJECT_DIR = $env:PROJECT_DIR"
+"@
       }
     }
 
     stage('Render settings.json') {
       steps {
-        powershell '''
-          $tplPath = Join-Path $env:WORKSPACE "settings.tpl.json"
-          if (-not (Test-Path $tplPath)) { Write-Error "[FATAL] Template not found: $tplPath" }
+        powershell @"
+$tplPath = Join-Path $env:WORKSPACE "settings.tpl.json"
+if (-not (Test-Path $tplPath)) { Write-Error "[FATAL] Template not found: $tplPath" }
 
-          $tpl  = Get-Content $tplPath -Raw
-          # Подставляем номер инстанса
-          $json = $tpl -replace "\\$\\{INSTANCE_NUMBER\\}", "$env:INSTANCE_NUMBER"
+$tpl  = Get-Content $tplPath -Raw
+$json = $tpl -replace "\$\{INSTANCE_NUMBER\}", "$env:INSTANCE_NUMBER"
 
-          $out  = Join-Path $env:PROJECT_DIR "settings.json"
-          # Пишем UTF-8 без BOM
-          [System.IO.File]::WriteAllText($out, $json, (New-Object System.Text.UTF8Encoding($false)))
+$out  = Join-Path $env:PROJECT_DIR "settings.json"
+[System.IO.File]::WriteAllText($out, $json, (New-Object System.Text.UTF8Encoding($false)))
 
-          if (-not (Test-Path $out)) { Write-Error "[FATAL] settings.json not created at $out" }
-          Get-Item $out | Format-List FullName,Length
-        '''
+if (-not (Test-Path $out)) { Write-Error "[FATAL] settings.json not created at $out" }
+Get-Item $out | Format-List FullName,Length
+"@
       }
     }
 
     stage('Create venv + install deps') {
       steps {
-        powershell '''
-          $venv = Join-Path $env:PROJECT_DIR ".venv"
-          if (-not (Test-Path $venv)) {
-            py -3 -m venv $venv
-          }
+        powershell @"
+$venv = Join-Path $env:PROJECT_DIR ".venv"
+if (-not (Test-Path $venv)) { py -3 -m venv $venv }
 
-          $pip = Join-Path $venv "Scripts\\pip.exe"
-          $req = Join-Path $env:WORKSPACE "requirements.txt"
+$pip = Join-Path $venv "Scripts\\pip.exe"
+$req = Join-Path $env:WORKSPACE "requirements.txt"
 
-          & $pip install --upgrade pip
-          if (Test-Path $req) {
-            & $pip install -r $req
-          } else {
-            Write-Host "requirements.txt not found at $req — skipping"
-          }
-        '''
+& $pip install --upgrade pip
+if (Test-Path $req) {
+  & $pip install -r $req
+} else {
+  Write-Host "requirements.txt not found at $req — skipping"
+}
+"@
       }
     }
 
     stage('Run main.py (smoke)') {
       steps {
-        powershell '''
-          $proj = $env:PROJECT_DIR
-          $py   = Join-Path $proj ".venv\\Scripts\\python.exe"
-          $cfg  = Join-Path $proj "settings.json"
-          $main = Join-Path $env:WORKSPACE "main.py"
+        powershell @"
+$proj = $env:PROJECT_DIR
+$py   = Join-Path $proj ".venv\\Scripts\\python.exe"
+$cfg  = Join-Path $proj "settings.json"
+$main = Join-Path $env:WORKSPACE "main.py"
 
-          if (-not (Test-Path $cfg))  { Write-Error "[FATAL] settings.json not found: $cfg" }
-          if (-not (Test-Path $py))   { Write-Error "[FATAL] Python not found in venv: $py" }
-          if (-not (Test-Path $main)) { Write-Error "[FATAL] main.py not found: $main" }
+if (-not (Test-Path $cfg))  { Write-Error "[FATAL] settings.json not found: $cfg" }
+if (-not (Test-Path $py))   { Write-Error "[FATAL] Python not found in venv: $py" }
+if (-not (Test-Path $main)) { Write-Error "[FATAL] main.py not found: $main" }
 
-          & $py $main --settings "$cfg"
-        '''
+& $py $main --settings "$cfg"
+"@
       }
     }
   }
 }
+'@
+
+# Пишем без BOM
+[IO.File]::WriteAllText($path, $body, $utf8NoBom)
+
+# 2) ДОП. ЗАЩИТА: вырезаем все возможные zero-width символы на всякий случай
+$txt = Get-Content $path -Raw
+$txt = $txt -replace '^\uFEFF',''                       # начальный BOM
+$txt = $txt -replace '\uFEFF',''                        # любые FEFF внутри
+$txt = $txt -replace '[\u200B-\u200D\u2060]',''         # zero-width
+[IO.File]::WriteAllText($path, $txt, $utf8NoBom)
+
+# 3) ПРОВЕРКА: первые 20 символов с кодами — должен быть '0070' у 'p' без префикса
+$chars = (Get-Content $path -Raw).ToCharArray()[0..19] | % { '{0:X4} {1}' -f [int]$_, $_ }
+$chars -join "`n"
