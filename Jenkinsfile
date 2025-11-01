@@ -73,6 +73,7 @@ if (Test-Path $req) {
 
     stage('Run main.py (smoke)') {
       steps {
+        // Set CWD to C:\ETL\ProjectX so relative paths in main.py work there
         powershell '''
 $proj = $env:PROJECT_DIR
 $py   = Join-Path $proj ".venv\\Scripts\\python.exe"
@@ -83,10 +84,8 @@ if (-not (Test-Path $cfg))  { Write-Error "[FATAL] settings.json not found: $cfg
 if (-not (Test-Path $py))   { Write-Error "[FATAL] Python not found in venv: $py" }
 if (-not (Test-Path $main)) { Write-Error "[FATAL] main.py not found: $main" }
 
-# Делаем CWD = C:\ETL\ProjectX, чтобы относительные пути в коде смотрели туда
 Set-Location $proj
 
-# Даём путь через ENV и аргумент
 $env:SETTINGS_PATH = $cfg
 & $py $main --settings "$cfg"
 
