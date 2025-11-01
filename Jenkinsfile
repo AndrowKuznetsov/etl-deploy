@@ -38,11 +38,9 @@ $tplPath = Join-Path $env:WORKSPACE "settings.tpl.json"
 if (-not (Test-Path $tplPath)) { Write-Error "[FATAL] Template not found: $tplPath" }
 
 $tpl  = Get-Content $tplPath -Raw
-# Подстановка номера инстанса из параметров
 $json = $tpl -replace "\\$\\{INSTANCE_NUMBER\\}", "$env:INSTANCE_NUMBER"
 
 $out  = Join-Path $env:PROJECT_DIR "settings.json"
-# Пишем UTF-8 без BOM
 [System.IO.File]::WriteAllText($out, $json, (New-Object System.Text.UTF8Encoding($false)))
 
 if (-not (Test-Path $out)) { Write-Error "[FATAL] settings.json not created at $out" }
@@ -57,12 +55,14 @@ Get-Item $out | Format-List FullName,Length
 $venv = Join-Path $env:PROJECT_DIR ".venv"
 if (-not (Test-Path $venv)) { py -3 -m venv $venv }
 
-$pip = Join-Path $venv "Scripts\\pip.exe"
+$py  = Join-Path $venv "Scripts\\python.exe"
 $req = Join-Path $env:WORKSPACE "requirements.txt"
 
-& $pip install --upgrade pip
+# ВАЖНО: обновляем pip и ставим зависимости через "python -m pip"
+& $py -m pip install --upgrade pip
+
 if (Test-Path $req) {
-  & $pip install -r $req
+  & $py -m pip install -r $req
 } else {
   Write-Host "requirements.txt not found at $req — skipping"
 }
