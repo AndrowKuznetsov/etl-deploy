@@ -1,8 +1,4 @@
-﻿$path = 'Jenkinsfile'
-$utf8NoBom = [Text.UTF8Encoding]::new($false)
-
-$body = @'
-pipeline {
+﻿pipeline {
   agent any
 
   parameters {
@@ -20,7 +16,6 @@ pipeline {
   }
 
   stages {
-
     stage('Checkout this repo') {
       steps { checkout scm }
     }
@@ -90,15 +85,3 @@ if (-not (Test-Path $main)) { Write-Error "[FATAL] main.py not found: $main" }
     }
   }
 }
-'@
-
-[IO.File]::WriteAllText($path, $body, $utf8NoBom)
-
-$txt = Get-Content $path -Raw
-$txt = $txt -replace '^\uFEFF',''                       # начальный BOM
-$txt = $txt -replace '\uFEFF',''                        # любые FEFF внутри
-$txt = $txt -replace '[\u200B-\u200D\u2060]',''         # zero-width
-[IO.File]::WriteAllText($path, $txt, $utf8NoBom)
-
-$chars = (Get-Content $path -Raw).ToCharArray()[0..19] | % { '{0:X4} {1}' -f [int]$_, $_ }
-$chars -join "`n"
