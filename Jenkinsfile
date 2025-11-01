@@ -58,14 +58,15 @@ if (-not (Test-Path $venv)) { py -3 -m venv $venv }
 $py  = Join-Path $venv "Scripts\\python.exe"
 $req = Join-Path $env:WORKSPACE "requirements.txt"
 
-# ВАЖНО: обновляем pip и ставим зависимости через "python -m pip"
 & $py -m pip install --upgrade pip
-
 if (Test-Path $req) {
   & $py -m pip install -r $req
 } else {
   Write-Host "requirements.txt not found at $req — skipping"
 }
+
+& $py -V
+& $py -m pip -V
 '''
       }
     }
@@ -82,7 +83,14 @@ if (-not (Test-Path $cfg))  { Write-Error "[FATAL] settings.json not found: $cfg
 if (-not (Test-Path $py))   { Write-Error "[FATAL] Python not found in venv: $py" }
 if (-not (Test-Path $main)) { Write-Error "[FATAL] main.py not found: $main" }
 
+# Делаем CWD = C:\ETL\ProjectX, чтобы относительные пути в коде смотрели туда
+Set-Location $proj
+
+# Даём путь через ENV и аргумент
+$env:SETTINGS_PATH = $cfg
 & $py $main --settings "$cfg"
+
+exit $LASTEXITCODE
 '''
       }
     }
