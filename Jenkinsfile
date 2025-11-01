@@ -1,5 +1,4 @@
-﻿# 1) ПЕРЕЗАПИСЫВАЕМ Jenkinsfile С НУЛЯ, БЕЗ BOM
-$path = 'Jenkinsfile'
+﻿$path = 'Jenkinsfile'
 $utf8NoBom = [Text.UTF8Encoding]::new($false)
 
 $body = @'
@@ -93,16 +92,13 @@ if (-not (Test-Path $main)) { Write-Error "[FATAL] main.py not found: $main" }
 }
 '@
 
-# Пишем без BOM
 [IO.File]::WriteAllText($path, $body, $utf8NoBom)
 
-# 2) ДОП. ЗАЩИТА: вырезаем все возможные zero-width символы на всякий случай
 $txt = Get-Content $path -Raw
 $txt = $txt -replace '^\uFEFF',''                       # начальный BOM
 $txt = $txt -replace '\uFEFF',''                        # любые FEFF внутри
 $txt = $txt -replace '[\u200B-\u200D\u2060]',''         # zero-width
 [IO.File]::WriteAllText($path, $txt, $utf8NoBom)
 
-# 3) ПРОВЕРКА: первые 20 символов с кодами — должен быть '0070' у 'p' без префикса
 $chars = (Get-Content $path -Raw).ToCharArray()[0..19] | % { '{0:X4} {1}' -f [int]$_, $_ }
 $chars -join "`n"
