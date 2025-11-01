@@ -1,4 +1,5 @@
-﻿pipeline {
+﻿$body = @'
+pipeline {
   agent any
 
   parameters {
@@ -85,3 +86,14 @@ if (-not (Test-Path $main)) { Write-Error "[FATAL] main.py not found: $main" }
     }
   }
 }
+'@
+
+$clean = $body -replace '^\uFEFF','' -replace '[\u200B-\u200D\u2060]',''
+
+$utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+[System.IO.File]::WriteAllText('Jenkinsfile', $clean, $utf8NoBom)
+
+$s = Get-Content Jenkinsfile -Raw
+('{0:X4} {1}' -f [int]$s[0], $s[0])  # ожидаем: "0070 p"
+
+([System.BitConverter]::ToString([IO.File]::ReadAllBytes('Jenkinsfile')[0..2]))
