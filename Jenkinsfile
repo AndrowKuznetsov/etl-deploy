@@ -22,35 +22,35 @@
 
     stage('Prepare dir') {
       steps {
-        powershell @"
-New-Item -ItemType Directory -Force -Path `"$env:PROJECT_DIR`" | Out-Null
+        powershell '''
+New-Item -ItemType Directory -Force -Path "$env:PROJECT_DIR" | Out-Null
 Write-Host "WORKSPACE   = $env:WORKSPACE"
 Write-Host "PROJECT_DIR = $env:PROJECT_DIR"
-"@
+'''
       }
     }
 
     stage('Render settings.json') {
       steps {
-        powershell @"
+        powershell '''
 $tplPath = Join-Path $env:WORKSPACE "settings.tpl.json"
 if (-not (Test-Path $tplPath)) { Write-Error "[FATAL] Template not found: $tplPath" }
 
 $tpl  = Get-Content $tplPath -Raw
-$json = $tpl -replace "\$\{INSTANCE_NUMBER\}", "$env:INSTANCE_NUMBER"
+$json = $tpl -replace "\\$\\{INSTANCE_NUMBER\\}", "$env:INSTANCE_NUMBER"
 
 $out  = Join-Path $env:PROJECT_DIR "settings.json"
 [System.IO.File]::WriteAllText($out, $json, (New-Object System.Text.UTF8Encoding($false)))
 
 if (-not (Test-Path $out)) { Write-Error "[FATAL] settings.json not created at $out" }
 Get-Item $out | Format-List FullName,Length
-"@
+'''
       }
     }
 
     stage('Create venv + install deps') {
       steps {
-        powershell @"
+        powershell '''
 $venv = Join-Path $env:PROJECT_DIR ".venv"
 if (-not (Test-Path $venv)) { py -3 -m venv $venv }
 
@@ -63,13 +63,13 @@ if (Test-Path $req) {
 } else {
   Write-Host "requirements.txt not found at $req — skipping"
 }
-"@
+'''
       }
     }
 
     stage('Run main.py (smoke)') {
       steps {
-        powershell @"
+        powershell '''
 $proj = $env:PROJECT_DIR
 $py   = Join-Path $proj ".venv\\Scripts\\python.exe"
 $cfg  = Join-Path $proj "settings.json"
@@ -80,7 +80,7 @@ if (-not (Test-Path $py))   { Write-Error "[FATAL] Python not found in venv: $py
 if (-not (Test-Path $main)) { Write-Error "[FATAL] main.py not found: $main" }
 
 & $py $main --settings "$cfg"
-"@
+'''
       }
     }
   }
