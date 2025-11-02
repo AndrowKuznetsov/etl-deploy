@@ -9,7 +9,7 @@ def main():
     cfg = load_settings()
     inst = cfg.get("instance")
     print(f"ETL instance {inst}: START")
-    # simulate some work
+    # test
     time.sleep(1)
     print(f"ETL instance {inst}: OK")
     return 0
